@@ -1,0 +1,27 @@
+{
+    "name": "armonia-tech/armonia-csv",
+    "description": "Libraries for csv",
+    "keywords": ["armonia", "armonia tech", "csv"],
+    "homepage": "https://github.com/armonia-tech/armonia-csv.git",
+    "license": "BSD-3-Clause", 
+    "config": {
+        "vendor-dir": "vendors",
+        "optimize-autoloader": true
+    },
+    "autoload": {
+        "psr-4": { "ArmoniaCsv\\": "src/" }
+    },
+    "authors": [
+        {
+            "name": "Armonia Tech",
+            "email": "developer@armonia-tech.com"
+        }
+    ],
+    "require": {
+        "justinrainbow/json-schema": "^5.2"
+    },
+    "minimum-stability": "stable",
+    "require-dev": {
+        
+    }
+}
