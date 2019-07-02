@@ -130,9 +130,15 @@ class Csv
      * @param string $formatName
      * @param string $fileName
      * @param string $encoding
+     * @return string csvcontent/content header
      */
-    public static function exportAsCsv(array $data, string $formatName, string $fileName, string $encoding = self::UTF_8)
-    {
+    public static function exportAsCsv(
+        array $data,
+        string $formatName,
+        string $fileName,
+        string $encoding = self::UTF_8,
+        bool   $returnCsvContent = false
+    ) {
         self::checkFileFormatExists($formatName);
 
         if (empty($data)) {
@@ -142,7 +148,7 @@ class Csv
         $csvHeader      = [];
         $csvData        = [];
         $formatFilePath = self::$config['format_folder'].'/'.$formatName.'.php';
-        $headerConfig   = require_once $formatFilePath;
+        $headerConfig   = require $formatFilePath;
         
         foreach ($headerConfig as $index => $config) {
             $csvHeader[] = $config['title'];
@@ -168,12 +174,16 @@ class Csv
             $csvContent = iconv($fileEncoding, $encoding."//TRANSLIT", $csvContent);
         }
 
-        header('Content-Type: text/csv');
-        header('Content-Disposition: attachment; filename='. $fileName);
-        header('Pragma: no-cache');
-        header("Expires: 0");
-        echo $csvContent;
-        exit;
+        if ($returnCsvContent) {
+            return $csvContent;
+        } else {
+            header('Content-Type: text/csv');
+            header('Content-Disposition: attachment; filename='. $fileName);
+            header('Pragma: no-cache');
+            header("Expires: 0");
+            echo $csvContent;
+            exit;
+        }
     }
 
     /**
