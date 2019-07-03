@@ -1,5 +1,5 @@
 <?php
-namespace ArmoniaCSV;
+namespace ArmoniaCsv;
 
 use ArmoniaCsv\Validator;
 
