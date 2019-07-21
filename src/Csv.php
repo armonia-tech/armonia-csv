@@ -61,7 +61,7 @@ class Csv
         $fileEncoding = self::fileDetectEncoding($csvContent);
 
         if ($fileEncoding != self::UTF_8) {
-            $csvContent = iconv($fileEncoding, self::UTF_8."//TRANSLIT", $csvContent);
+            $csvContent = iconv($fileEncoding, self::UTF_8."//IGNORE", $csvContent);
         }
 
         $lines       = explode(PHP_EOL, $csvContent);
