@@ -10,7 +10,9 @@ class Csv
     private static $config              = [];
     private static $supportedMBEncoding = [
         "UTF-8",
+        "SJIS-WIN",
         "SHIFT_JIS",
+        "EUC",
         "CP932"
     ];
 
