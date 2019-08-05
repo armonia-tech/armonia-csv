@@ -66,6 +66,7 @@ class Csv
             $csvContent = iconv($fileEncoding, self::UTF_8."//IGNORE", $csvContent);
         }
 
+        $csvContent  = preg_replace('/(,|\n|^)"(?:([^\n"]*)\n([^\n"]*))*"/', '$1"$2 $3"', $csvContent);
         $lines       = explode(PHP_EOL, $csvContent);
         $csvData     = [];
         $return      = [];
