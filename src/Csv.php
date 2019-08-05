@@ -90,7 +90,11 @@ class Csv
         }
 
         if (empty($return['errors'])) {
-            $validator = new Validator();
+            $validator     = new Validator();
+            $jsonDir       = self::$config['directory_path'] . 'Validation/' . $formatName . '.json';
+            $schemaContent = file_get_contents($jsonDir);
+            $schema        = json_decode($schemaContent);
+
             foreach ($csvData as $row => $data) {
                 $validationResult = [];
 
@@ -107,9 +111,11 @@ class Csv
                 }
                 
                 $rowDataObject    = (object) $rowData;
-     
-                $validationResult = $validator->validate(self::$config['directory_path'], $formatName, $rowDataObject);
-               
+
+                if (count((array)$schema) > 0) {
+                    $validationResult = $validator->validate(self::$config['directory_path'], $formatName, $rowDataObject, $schema);
+                }
+                
                 if (!empty($validationResult)) {
                     $return['errors']['content'][$row+1] = $validationResult;
                 }
@@ -121,7 +127,7 @@ class Csv
         if (empty($return)) {
             $return = $allData;
         }
- 
+
         return $return;
     }
 

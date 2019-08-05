@@ -45,14 +45,12 @@ class Validator
      * @param string $api_service_group
      * @param string $api_service
      * @param object $input
+     * @param object $schema
      * @return array
      */
-    public function validate(string $csvFolder, string $csvFilename, object $input)
+    public function validate(string $csvFolder, string $csvFilename, object $input, object $schema)
     {
         $jsonValidator = $this->getValidator();
-        $jsonDir       = $csvFolder . 'Validation/' . $csvFilename . '.json';
-        $schemaContent = file_get_contents($jsonDir);
-        $schema        = json_decode($schemaContent);
 
         $result = [];
         // Create json validator to validate json schema
