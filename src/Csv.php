@@ -83,7 +83,7 @@ class Csv
         $headerData     = $csvData[0];
  
         foreach ($headerConfig as $index => $config) {
-            if ($config['title'] != $headerData[$index]) {
+            if (!isset($headerData[$index]) || $config['title'] != $headerData[$index]) {
                 $columnIndex = $index+1;
                 $return['errors']['header'][] = "Header column [".$columnIndex."] doesn't match. Expection: ".$config['title'];
             }
