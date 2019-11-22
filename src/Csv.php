@@ -35,13 +35,14 @@ class Csv
      * @author Armonia Tech <developer@armonia-tech.com>
      * @param string $filePath
      * @param string $formatName
+     * @param int $skipDataLine optional
      * @return array
      */
-    public static function renderCsv(string $filePath, string $formatName)
+    public static function renderCsv(string $filePath, string $formatName, int $skipDataLine = 0)
     {
         if (file_exists($filePath)) {
             $fileContent  = file_get_contents($filePath);
-            return self::renderCsvContent($fileContent, $formatName);
+            return self::renderCsvContent($fileContent, $formatName, $skipDataLine);
         }
 
         throw new \Exception('Csv file doesn\'t exists.');
@@ -53,9 +54,10 @@ class Csv
      * @author Armonia Tech <developer@armonia-tech.com>
      * @param string $csvContent
      * @param string $formatName
+     * @param int $skipDataLine optional
      * @return array
      */
-    public static function renderCsvContent(string $csvContent, string $formatName)
+    public static function renderCsvContent(string $csvContent, string $formatName, int $skipDataLine = 0)
     {
         self::checkFileFormatExists($formatName);
         self::checkJsonSchemaExists($formatName);
@@ -71,6 +73,7 @@ class Csv
         $csvData     = [];
         $return      = [];
         $allData     = [];
+        $startRow    = 0 + $skipDataLine;
 
         foreach ($lines as $line) {
             if (!empty($line)) {
@@ -80,7 +83,7 @@ class Csv
 
         $formatFilePath = self::$config['format_folder'].'/'.$formatName.'.php';
         $headerConfig   = require_once $formatFilePath;
-        $headerData     = $csvData[0];
+        $headerData     = $csvData[$startRow];
  
         foreach ($headerConfig as $index => $config) {
             if (!isset($headerData[$index]) || $config['title'] !=  trim($headerData[$index])) {
@@ -98,7 +101,7 @@ class Csv
             foreach ($csvData as $row => $data) {
                 $validationResult = [];
 
-                if ($row < 1) {
+                if ($row < $startRow + 1) {
                     continue;
                 }
 
@@ -106,7 +109,7 @@ class Csv
 
                 if (!empty($data)) {
                     foreach ($headerConfig as $index => $config) {
-                        $rowData[$headerConfig[$index]['name']] = $data[$index];
+                        $rowData[$headerConfig[$index]['name']] = trim($data[$index]);
                     }
                 }
                 
@@ -117,7 +120,7 @@ class Csv
                 }
                 
                 if (!empty($validationResult)) {
-                    $return['errors']['content'][$row+1] = $validationResult;
+                    $return['errors']['content'][$row + $startRow + 1] = $validationResult;
                 }
 
                 $allData[] = $rowData;
