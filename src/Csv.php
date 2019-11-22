@@ -35,6 +35,7 @@ class Csv
      * @author Armonia Tech <developer@armonia-tech.com>
      * @param string $filePath
      * @param string $formatName
+     * @param bool $hasHeader optional
      * @param int $skipDataLine optional
      * @return array
      */
@@ -54,6 +55,7 @@ class Csv
      * @author Armonia Tech <developer@armonia-tech.com>
      * @param string $csvContent
      * @param string $formatName
+     * @param bool $hasHeader optional
      * @param int $skipDataLine optional
      * @return array
      */
