@@ -38,11 +38,11 @@ class Csv
      * @param int $skipDataLine optional
      * @return array
      */
-    public static function renderCsv(string $filePath, string $formatName, int $skipDataLine = 0)
+    public static function renderCsv(string $filePath, string $formatName, bool $hasHeader = true, int $skipDataLine = 0)
     {
         if (file_exists($filePath)) {
             $fileContent  = file_get_contents($filePath);
-            return self::renderCsvContent($fileContent, $formatName, $skipDataLine);
+            return self::renderCsvContent($fileContent, $formatName, $hasHeader, $skipDataLine);
         }
 
         throw new \Exception('Csv file doesn\'t exists.');
@@ -57,7 +57,7 @@ class Csv
      * @param int $skipDataLine optional
      * @return array
      */
-    public static function renderCsvContent(string $csvContent, string $formatName, int $skipDataLine = 0)
+    public static function renderCsvContent(string $csvContent, string $formatName, bool $hasHeader = true, int $skipDataLine = 0)
     {
         self::checkFileFormatExists($formatName);
         self::checkJsonSchemaExists($formatName);
@@ -84,14 +84,16 @@ class Csv
         $formatFilePath = self::$config['format_folder'].'/'.$formatName.'.php';
         $headerConfig   = require_once $formatFilePath;
         $headerData     = $csvData[$startRow];
- 
-        foreach ($headerConfig as $index => $config) {
-            if (!isset($headerData[$index]) || $config['title'] !=  trim($headerData[$index])) {
-                $columnIndex = $index+1;
-                $return['errors']['header'][] = "Header column [".$columnIndex."] doesn't match. Expection: ".$config['title'];
+
+        if ($hasHeader) {
+            foreach ($headerConfig as $index => $config) {
+                if (!isset($headerData[$index]) || $config['title'] !=  trim($headerData[$index])) {
+                    $columnIndex = $index+1;
+                    $return['errors']['header'][] = "Header column [".$columnIndex."] doesn't match. Expection: ".$config['title'];
+                }
             }
         }
-
+        
         if (empty($return['errors'])) {
             $validator     = new Validator();
             $jsonDir       = self::$config['directory_path'] . 'Validation/' . $formatName . '.json';
@@ -101,7 +103,7 @@ class Csv
             foreach ($csvData as $row => $data) {
                 $validationResult = [];
 
-                if ($row < $startRow + 1) {
+                if ($row < $startRow + 1 && $hasHeader) {
                     continue;
                 }
 
@@ -109,7 +111,11 @@ class Csv
 
                 if (!empty($data)) {
                     foreach ($headerConfig as $index => $config) {
-                        $rowData[$headerConfig[$index]['name']] = trim($data[$index]);
+                        if (isset($data[$index])) {
+                            $rowData[$headerConfig[$index]['name']] = trim($data[$index]);
+                        } else {
+                            $rowData[$headerConfig[$index]['name']] = '';
+                        }
                     }
                 }
                 
@@ -120,7 +126,11 @@ class Csv
                 }
                 
                 if (!empty($validationResult)) {
-                    $return['errors']['content'][$row + $startRow + 1] = $validationResult;
+                    if ($hasHeader) {
+                        $return['errors']['content'][$row + $startRow + 1] = $validationResult;
+                    } else {
+                        $return['errors']['content'][$row + $startRow] = $validationResult;
+                    }
                 }
 
                 $allData[] = $rowData;
