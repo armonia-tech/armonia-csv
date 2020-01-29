@@ -79,7 +79,7 @@ class Csv
         }
 
         $formatFilePath = self::$config['format_folder'].'/'.$formatName.'.php';
-        $headerConfig   = require_once $formatFilePath;
+        $headerConfig   = require $formatFilePath;
         $headerData     = $csvData[0];
  
         foreach ($headerConfig as $index => $config) {
