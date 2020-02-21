@@ -161,7 +161,8 @@ class Csv
         string $formatName,
         string $fileName,
         string $encoding = self::UTF_8,
-        bool   $returnCsvContent = false
+        bool   $returnCsvContent = false,
+        bool   $includeHeader = true
     ) {
         self::checkFileFormatExists($formatName);
 
@@ -174,11 +175,13 @@ class Csv
         $formatFilePath = self::$config['format_folder'].'/'.$formatName.'.php';
         $headerConfig   = require $formatFilePath;
         
-        foreach ($headerConfig as $index => $config) {
-            $csvHeader[] = $config['title'];
-        }
+        if ($includeHeader) {
+            foreach ($headerConfig as $index => $config) {
+                $csvHeader[] = $config['title'];
+            }
 
-        $csvData[] = $csvHeader;
+            $csvData[] = $csvHeader;
+        }
 
         foreach ($data as $dataDetail) {
             $newData = [];
