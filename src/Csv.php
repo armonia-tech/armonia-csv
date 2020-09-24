@@ -59,7 +59,7 @@ class Csv
      * @param int $skipDataLine optional
      * @return array
      */
-    public static function renderCsvContent(string $csvContent, string $formatName, bool $hasHeader = true, int $skipDataLine = 0)
+    public static function renderCsvContent(string $csvContent, string $formatName, bool $hasHeader = true, int $skipDataLine = 0, string $separator = "")
     {
         self::checkFileFormatExists($formatName);
         self::checkJsonSchemaExists($formatName);
@@ -79,6 +79,9 @@ class Csv
 
         foreach ($lines as $line) {
             if (!empty($line)) {
+                if (!empty($separator)) {
+                    $line = str_replace($separator, ",", $line);
+                }
                 $csvData[] = str_getcsv($line);
             }
         }
