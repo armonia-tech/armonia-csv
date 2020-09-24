@@ -70,6 +70,13 @@ class Csv
             $csvContent = iconv($fileEncoding, self::UTF_8."//IGNORE", $csvContent);
         }
 
+        $replaceResult = preg_replace('/((?:(?:[^,"]*)(?!,)\n){2,}(?!,)(?:[^,"]*)(?=,))/', '"$1"', $csvContent);
+
+        if (!is_null($replaceResult)) {
+            $csvContent  = $replaceResult;
+        }
+
+        $csvContent  = preg_replace('/(\n|\r)(?=(?:[^"]*)",)/', '\n', $csvContent);
         $csvContent  = preg_replace('/(,|\n|^)"(?:([^\n"]*)\n([^\n"]*))*"/', '$1"$2 $3"', $csvContent);
         $lines       = explode(PHP_EOL, $csvContent);
         $csvData     = [];
