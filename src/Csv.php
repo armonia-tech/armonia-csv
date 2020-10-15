@@ -86,6 +86,8 @@ class Csv
         $startRow    = 0 + $skipDataLine;
 
         foreach ($lines as $line) {
+            // preg_match to check if other than double quote, space and comma have values, then it means it is not row with all empty strings
+            // preg_match validation does not handle false due to error will be handled by str_getcsv which will throw error
             if (($skipEmptyRow === true && preg_match('/[^" ,]/', $line) !== 0) ||
                 ($skipEmptyRow === false && !empty($line))) {
                 if (!empty($separator)) {
