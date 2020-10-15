@@ -36,14 +36,14 @@ class Csv
      * @param string $filePath
      * @param string $formatName
      * @param bool $hasHeader optional
-     * @param int $skipDataLine optional
+     * @param int $skipDataLine optional default false
      * @return array
      */
-    public static function renderCsv(string $filePath, string $formatName, bool $hasHeader = true, int $skipDataLine = 0)
+    public static function renderCsv(string $filePath, string $formatName, bool $hasHeader = true, int $skipDataLine = 0, bool $skipEmptyRow = false)
     {
         if (file_exists($filePath)) {
             $fileContent  = file_get_contents($filePath);
-            return self::renderCsvContent($fileContent, $formatName, $hasHeader, $skipDataLine);
+            return self::renderCsvContent($fileContent, $formatName, $hasHeader, $skipDataLine, '', $skipEmptyRow);
         }
 
         throw new \Exception('Csv file doesn\'t exists.');
@@ -57,9 +57,10 @@ class Csv
      * @param string $formatName
      * @param bool $hasHeader optional
      * @param int $skipDataLine optional
+     * @param bool $skipEmptyRow optional default false
      * @return array
      */
-    public static function renderCsvContent(string $csvContent, string $formatName, bool $hasHeader = true, int $skipDataLine = 0, string $separator = "")
+    public static function renderCsvContent(string $csvContent, string $formatName, bool $hasHeader = true, int $skipDataLine = 0, string $separator = "", bool $skipEmptyRow = false)
     {
         self::checkFileFormatExists($formatName);
         self::checkJsonSchemaExists($formatName);
@@ -85,7 +86,8 @@ class Csv
         $startRow    = 0 + $skipDataLine;
 
         foreach ($lines as $line) {
-            if (!empty($line)) {
+            if (($skipEmptyRow === true && preg_replace('/[" ]?,?/', '', $line) !== '') ||
+                ($skipEmptyRow === false && !empty($line))) {
                 if (!empty($separator)) {
                     $line = str_replace($separator, ",", $line);
                 }
