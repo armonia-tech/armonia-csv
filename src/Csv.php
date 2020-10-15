@@ -86,7 +86,7 @@ class Csv
         $startRow    = 0 + $skipDataLine;
 
         foreach ($lines as $line) {
-            if (($skipEmptyRow === true && preg_replace('/[" ]?,?/', '', $line) !== '') ||
+            if (($skipEmptyRow === true && preg_match('/[^" ,]/', $line) !== 0) ||
                 ($skipEmptyRow === false && !empty($line))) {
                 if (!empty($separator)) {
                     $line = str_replace($separator, ",", $line);
