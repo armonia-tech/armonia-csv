@@ -71,14 +71,30 @@ class Csv
             $csvContent = iconv($fileEncoding, self::UTF_8."//IGNORE", $csvContent);
         }
 
-        $replaceResult = preg_replace('/((?:(?:[^,"]*)(?!,)\n){2,}(?!,)(?:[^,"]*)(?=,))/', '"$1"', $csvContent);
+        // set default separator if empty
+        if (empty($separator)) {
+            $separator = ",";
+        }
+
+        // convert separator to dhexadecimal for regex pattern on following process of preg_replace
+        $hex_dec = str_pad(dechex(ord($separator)), 2, '0', STR_PAD_LEFT);
+        // the following pattern will add double quotes to columns with multiple lines
+        $pattern = '/((?:(?:[^\x' . $hex_dec . '"]*)(?![\x' . $hex_dec . '])\n){2,}(?![\x' . $hex_dec . '])(?:[^\x' . $hex_dec . '"]*)(?=[\x' . $hex_dec . ']))/';
+        $replaceResult = preg_replace($pattern, '"$1"', $csvContent);
 
         if (!is_null($replaceResult)) {
             $csvContent  = $replaceResult;
         }
 
+        // replace double quotes with temporary quotation to avoid preg_replace the wrong double quote
+        $csvContent  = str_replace('""', '$dqut', $csvContent);
+
         $csvContent  = preg_replace('/(\n|\r)(?=(?:[^"]*)",)/', '\n', $csvContent);
         $csvContent  = preg_replace('/(,|\n|^)"(?:([^\n"]*)\n([^\n"]*))*"/', '$1"$2 $3"', $csvContent);
+
+        // put back the double quotes
+        $csvContent  = str_replace('$dqut', '""', $csvContent);
+
         $lines       = explode(PHP_EOL, $csvContent);
         $csvData     = [];
         $return      = [];
