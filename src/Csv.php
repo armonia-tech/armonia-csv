@@ -107,9 +107,10 @@ class Csv
             if (($skipEmptyRow === true && preg_match('/[^" ,]/', $line) !== 0) ||
                 ($skipEmptyRow === false && !empty($line))) {
                 if (!empty($separator)) {
-                    $line = str_replace($separator, ",", $line);
+                    $csvData[] = str_getcsv($line, $separator);
+                } else {
+                    $csvData[] = str_getcsv($line);
                 }
-                $csvData[] = str_getcsv($line);
             }
         }
 
