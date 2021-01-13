@@ -58,9 +58,10 @@ class Csv
      * @param bool $hasHeader optional
      * @param int $skipDataLine optional
      * @param bool $skipEmptyRow optional default false
+     * @param bool $unfollowHeaderOrder optional default false
      * @return array
      */
-    public static function renderCsvContent(string $csvContent, string $formatName, bool $hasHeader = true, int $skipDataLine = 0, string $separator = "", bool $skipEmptyRow = false)
+    public static function renderCsvContent(string $csvContent, string $formatName, bool $hasHeader = true, int $skipDataLine = 0, string $separator = "", bool $skipEmptyRow = false, bool $unfollowHeaderOrder = false)
     {
         self::checkFileFormatExists($formatName);
         self::checkJsonSchemaExists($formatName);
@@ -119,10 +120,18 @@ class Csv
         $headerData     = $csvData[$startRow];
 
         if ($hasHeader) {
-            foreach ($headerConfig as $index => $config) {
-                if (!isset($headerData[$index]) || $config['title'] !=  trim($headerData[$index])) {
-                    $columnIndex = $index+1;
-                    $return['errors']['header'][] = "Header column [".$columnIndex."] doesn't match. Expection: ".$config['title'];
+            if (!$unfollowHeaderOrder) {
+                foreach ($headerConfig as $index => $config) {
+                    if (!isset($headerData[$index]) || $config['title'] !=  trim($headerData[$index])) {
+                        $columnIndex = $index+1;
+                        $return['errors']['header'][] = "Header column [".$columnIndex."] doesn't match. Expection: ".$config['title'];
+                    }
+                }
+            } else {
+                foreach ($headerConfig as $config) {
+                    if (!in_array($config['title'], $headerData)) {
+                        $return['errors']['header'][] = "Header column doesn't match. Expection: ".$config['title'];
+                    }
                 }
             }
         }
@@ -144,8 +153,13 @@ class Csv
 
                 if (!empty($data)) {
                     foreach ($headerConfig as $index => $config) {
+                        $dataIndex = $index;
+                        if ($unfollowHeaderOrder) {
+                            $dataIndex = array_search($config['title'], $headerData);
+                        }
+
                         if (isset($data[$index])) {
-                            $rowData[$headerConfig[$index]['name']] = trim($data[$index]);
+                            $rowData[$headerConfig[$index]['name']] = trim($data[$dataIndex]);
                         } else {
                             $rowData[$headerConfig[$index]['name']] = '';
                         }
