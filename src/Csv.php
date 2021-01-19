@@ -58,10 +58,9 @@ class Csv
      * @param bool $hasHeader optional
      * @param int $skipDataLine optional
      * @param bool $skipEmptyRow optional default false
-     * @param bool $unfollowHeaderOrder optional default false
      * @return array
      */
-    public static function renderCsvContent(string $csvContent, string $formatName, bool $hasHeader = true, int $skipDataLine = 0, string $separator = "", bool $skipEmptyRow = false, bool $unfollowHeaderOrder = false)
+    public static function renderCsvContent(string $csvContent, string $formatName, bool $hasHeader = true, int $skipDataLine = 0, string $separator = "", bool $skipEmptyRow = false)
     {
         self::checkFileFormatExists($formatName);
         self::checkJsonSchemaExists($formatName);
@@ -120,18 +119,9 @@ class Csv
         $headerData     = $csvData[$startRow];
 
         if ($hasHeader) {
-            if (!$unfollowHeaderOrder) {
-                foreach ($headerConfig as $index => $config) {
-                    if (!isset($headerData[$index]) || $config['title'] !=  trim($headerData[$index])) {
-                        $columnIndex = $index+1;
-                        $return['errors']['header'][] = "Header column [".$columnIndex."] doesn't match. Expection: ".$config['title'];
-                    }
-                }
-            } else {
-                foreach ($headerConfig as $config) {
-                    if (!in_array($config['title'], $headerData)) {
-                        $return['errors']['header'][] = "Header column doesn't match. Expection: ".$config['title'];
-                    }
+            foreach ($headerConfig as $config) {
+                if (!in_array($config['title'], $headerData) && !array_key_exists('default', $config)) {
+                    $return['errors']['header'][] = "Header column doesn't match. Expection: ".$config['title'];
                 }
             }
         }
@@ -154,12 +144,15 @@ class Csv
                 if (!empty($data)) {
                     foreach ($headerConfig as $index => $config) {
                         $dataIndex = $index;
-                        if ($unfollowHeaderOrder) {
+
+                        if ($hasHeader) {
                             $dataIndex = array_search($config['title'], $headerData);
                         }
 
-                        if (isset($data[$index])) {
+                        if ($dataIndex !== false && isset($data[$dataIndex])) {
                             $rowData[$headerConfig[$index]['name']] = trim($data[$dataIndex]);
+                        } else if (array_key_exists('default', $config)) {
+                            $rowData[$headerConfig[$index]['name']] = $config['default'];
                         } else {
                             $rowData[$headerConfig[$index]['name']] = '';
                         }
