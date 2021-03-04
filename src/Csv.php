@@ -6,6 +6,7 @@ use ArmoniaCsv\Validator;
 class Csv
 {
     const UTF_8 = 'UTF-8';
+    const UTF8_BYTE_ORDER_MARK = "\xEF\xBB\xBF";
 
     private static $config              = [];
     private static $supportedMBEncoding = [
@@ -69,6 +70,11 @@ class Csv
 
         if ($fileEncoding != self::UTF_8) {
             $csvContent = iconv($fileEncoding, self::UTF_8."//IGNORE", $csvContent);
+        }
+
+        // remove byte order mark if encoding is UTF-8
+        if ($fileEncoding === self::UTF_8) {
+            $csvContent = self::removeByteOrderMark($csvContent);
         }
 
         // set default separator if empty
@@ -383,6 +389,26 @@ class Csv
             }
             $output .= substr($tmp, 1).$rowSep;
         }
+        return $output;
+    }
+
+    /*
+     * Remove Byte Order Mark
+     *
+     * @author Armonia Tech <developer@armonia-tech.com>
+     * @param string $content
+     * @return string $output
+     *
+     */
+    private static function removeByteOrderMark($content)
+    {
+        $output = $content;
+
+        $byte_length = strlen(self::UTF8_BYTE_ORDER_MARK);
+        if (substr($output, 0, $byte_length) == self::UTF8_BYTE_ORDER_MARK) {
+            $output = substr($output, $byte_length, strlen($output));
+        }
+
         return $output;
     }
 
