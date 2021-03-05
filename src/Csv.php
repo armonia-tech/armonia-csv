@@ -376,7 +376,7 @@ class Csv
                 $key = str_replace($qut, "$qut$qut", $key);
                 $output .= "$colSep$qut$val$qut";
             }
-            $output = substr($output, 1)."\n";
+            $output = substr($output, 1).$rowSep;
             unset($array[0]);
         }
 
