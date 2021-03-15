@@ -95,8 +95,9 @@ class Csv
         // replace double quotes with temporary quotation to avoid preg_replace the wrong double quote
         $csvContent  = str_replace('""', '$dqut', $csvContent);
 
-        $csvContent  = preg_replace('/(\n|\r)(?=(?:[^"]*)",)/', '\n', $csvContent);
-        $csvContent  = preg_replace('/(,|\n|^)""(?:([^\n"]*)\n([^\n"]*))*""/', '$1"$2 $3"', $csvContent);
+        // find all next lines between double quotes in the same column and replace the next line with \n for temporary
+        // due to data lines are separated by using next line when explode csv content later
+        $csvContent  = preg_replace('/(?!\n(([^"]*"){2})*[^"]*$)\n/', '\n', $csvContent);
 
         // put back the double quotes
         $csvContent  = str_replace('$dqut', '""', $csvContent);
@@ -112,10 +113,12 @@ class Csv
             // preg_match validation does not handle false due to error will be handled by str_getcsv which will throw error
             if (($skipEmptyRow === true && preg_match('/[^" ,]/', $line) !== 0) ||
                 ($skipEmptyRow === false && !empty($line))) {
+                // replace the actual next line to the data
+                $new_line = str_replace('\n', "\n", $line);
                 if (!empty($separator)) {
-                    $csvData[] = str_getcsv($line, $separator);
+                    $csvData[] = str_getcsv($new_line, $separator);
                 } else {
-                    $csvData[] = str_getcsv($line);
+                    $csvData[] = str_getcsv($new_line);
                 }
             }
         }
