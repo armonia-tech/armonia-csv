@@ -376,7 +376,7 @@ class Csv
                 $key = str_replace($qut, "$qut$qut", $key);
                 $output .= "$colSep$qut$val$qut";
             }
-            $output = substr($output, 1)."\n";
+            $output = substr($output, 1).$rowSep;
             unset($array[0]);
         }
 
@@ -392,7 +392,7 @@ class Csv
         return $output;
     }
 
-    /**
+    /*
      * Remove Byte Order Mark
      *
      * @author Armonia Tech <developer@armonia-tech.com>
@@ -410,5 +410,74 @@ class Csv
         }
 
         return $output;
+    }
+
+    /**
+     * Custom Export data as csv format for templorary fix
+     *
+     * @author Armonia Tech <developer@armonia-tech.com>
+     * @param string $data
+     * @param string $formatName
+     * @param string $fileName
+     * @param string $encoding
+     * @return string csvcontent/content header
+     */
+    public static function customExportAsCsv(
+        array $data,
+        string $formatName,
+        string $fileName,
+        string $encoding = self::UTF_8,
+        bool   $returnCsvContent = false,
+        bool   $includeHeader = true,
+        string $qut = '"'
+    ) {
+        self::checkFileFormatExists($formatName);
+
+        if (empty($data)) {
+            throw new \Exception('Data cannot be empty.');
+        }
+
+        $csvHeader      = [];
+        $csvData        = [];
+        $formatFilePath = self::$config['format_folder'].'/'.$formatName.'.php';
+        $headerConfig   = require $formatFilePath;
+        
+        if ($includeHeader) {
+            foreach ($headerConfig as $index => $config) {
+                $csvHeader[] = $config['title'];
+            }
+
+            $csvData[] = $csvHeader;
+        }
+
+        foreach ($data as $dataDetail) {
+            $newData = [];
+            foreach ($headerConfig as $index => $config) {
+                if (isset($dataDetail[$config['name']])) {
+                    $newData[] = $dataDetail[$config['name']];
+                } else {
+                    $newData[] = '';
+                }
+            }
+            $csvData[] = $newData;
+        }
+
+        $csvContent   = self::arrayToCsv($csvData, true, ',', "\r\n", $qut);
+
+        $fileEncoding = self::fileDetectEncoding($csvContent);
+        if ($fileEncoding != $encoding) {
+            $csvContent = iconv($fileEncoding, $encoding."//TRANSLIT", $csvContent);
+        }
+
+        if ($returnCsvContent) {
+            return $csvContent;
+        } else {
+            header('Content-Type: text/csv');
+            header('Content-Disposition: attachment; filename='. $fileName);
+            header('Pragma: no-cache');
+            header("Expires: 0");
+            echo $csvContent;
+            exit;
+        }
     }
 }
