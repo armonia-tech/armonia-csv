@@ -96,7 +96,7 @@ class Csv
         $csvContent  = str_replace('""', '$dqut', $csvContent);
 
         $csvContent  = preg_replace('/(\n|\r)(?=(?:[^"]*)",)/', '\n', $csvContent);
-        $csvContent  = preg_replace('/(,|\n|^)"(?:([^\n"]*)\n([^\n"]*))*"/', '$1"$2 $3"', $csvContent);
+        $csvContent  = preg_replace('/(,|\n|^)""(?:([^\n"]*)\n([^\n"]*))*""/', '$1"$2 $3"', $csvContent);
 
         // put back the double quotes
         $csvContent  = str_replace('$dqut', '""', $csvContent);
