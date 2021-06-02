@@ -97,7 +97,7 @@ class Csv
 
         // find all next lines between double quotes in the same column and replace the next line with \n for temporary
         // due to data lines are separated by using next line when explode csv content later
-        $csvContent  = preg_replace('/(?!\n(([^"]*"){2})*[^"]*$)\n/', '\n', $csvContent);
+        $csvContent  = preg_replace('/(\n|\r)(?=(?:[^"]*)"(,|\n))/', '\n', $csvContent);
 
         // put back the double quotes
         $csvContent  = str_replace('$dqut', '""', $csvContent);
@@ -130,7 +130,7 @@ class Csv
         if ($hasHeader) {
             foreach ($headerConfig as $config) {
                 if (!in_array($config['title'], $headerData) && !array_key_exists('default', $config)) {
-                    $return['errors']['header'][] = "Header column doesn't match. Expection: ".$config['title'];
+                    $return['errors']['header'][] = "Header column doesn't match. Expected: ".$config['title'];
                 }
             }
         }
