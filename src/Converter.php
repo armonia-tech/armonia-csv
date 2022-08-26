@@ -9,10 +9,10 @@ class Converter
      * To Xlsx
      *
      * @author Armonia Tech <developer@armonia-tech.com>
-     * @param type $source_file
-     * @param type $source_encoding
-     * @param type $keep_source_file
-     * @param type $autoSizeColumn
+     * @param string $source_file Full path of the source csv to be convert
+     * @param string $source_encoding File encoding of the content in csv
+     * @param bool $keep_source_file true to keep the source_file. false to remove the source_file after generated
+     * @param bool $autoSizeColumn
      * @return string
      */
     public static function toXlsx(string $source_file, string $source_encoding = 'UTF-8', bool $keep_source_file = true, bool $autoSizeColumn = true)
@@ -57,7 +57,7 @@ class Converter
         $xlsx_writer = IOFactory::createWriter($source_sheet, 'Xlsx');
         $xlsx_writer->save($xlsx_file);
 
-        if ($keep_source_file === false) {
+        if (file_exists($xlsx_file) && $keep_source_file === false) {
             unlink($source_file);
         }
 
