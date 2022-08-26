@@ -3,7 +3,7 @@
     "description": "Libraries for csv",
     "keywords": ["armonia", "armonia tech", "csv"],
     "homepage": "https://github.com/armonia-tech/armonia-csv.git",
-    "license": "BSD-3-Clause", 
+    "license": "BSD-3-Clause",
     "config": {
         "vendor-dir": "vendors",
         "optimize-autoloader": true
@@ -18,10 +18,11 @@
         }
     ],
     "require": {
-        "justinrainbow/json-schema": "^5.2"
+        "justinrainbow/json-schema": "^5.2",
+        "phpoffice/phpspreadsheet": "^1.14"
     },
     "minimum-stability": "stable",
     "require-dev": {
-        
+        "phpunit/phpunit": "^8.1"
     }
 }
