@@ -13,9 +13,11 @@ class Converter
      * @param string $source_encoding File encoding of the content in csv
      * @param bool $keep_source_file true to keep the source_file. false to remove the source_file after generated
      * @param bool $autoSizeColumn
+     * @param string $font default is ＭＳ Ｐゴシック
+     * @param int $font_size default is 18
      * @return string
      */
-    public static function toXlsx(string $source_file, string $source_encoding = 'UTF-8', bool $keep_source_file = true, bool $autoSizeColumn = true)
+    public static function toXlsx(string $source_file, string $source_encoding = 'UTF-8', bool $keep_source_file = true, bool $autoSizeColumn = true, string $font = 'ＭＳ Ｐゴシック', int $font_size = 18)
     {
         $reader = IOFactory::createReader('Csv');
 
@@ -26,6 +28,10 @@ class Converter
 
         // Load spread sheet
         $source_sheet = $reader->load($source_file);
+
+        // Set font and font size
+        $source_sheet->getDefaultStyle()->getFont()->setName($font);
+        $source_sheet->getDefaultStyle()->getFont()->setSize($font_size);
 
         // Handle auto size column
         if ($autoSizeColumn === true) {
