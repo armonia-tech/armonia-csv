@@ -59,9 +59,10 @@ class Csv
      * @param bool $hasHeader optional
      * @param int $skipDataLine optional
      * @param bool $skipEmptyRow optional default false
+     * @param bool $validateDuplicateColumnValidation optional default false
      * @return array
      */
-    public static function renderCsvContent(string $csvContent, string $formatName, bool $hasHeader = true, int $skipDataLine = 0, string $separator = "", bool $skipEmptyRow = false)
+    public static function renderCsvContent(string $csvContent, string $formatName, bool $hasHeader = true, int $skipDataLine = 0, string $separator = "", bool $skipEmptyRow = false, bool $validateDuplicateColumnValidation = false)
     {
         self::checkFileFormatExists($formatName);
         self::checkJsonSchemaExists($formatName);
@@ -131,6 +132,21 @@ class Csv
             foreach ($headerConfig as $config) {
                 if (!in_array($config['title'], $headerData) && !array_key_exists('default', $config)) {
                     $return['errors']['header'][] = "Header column doesn't match. Expected: ".$config['title'];
+                }
+            }
+
+            if ($validateDuplicateColumnValidation === true) {
+                $valid_headers = array_column($headerConfig, 'title');
+
+                //extract duplicate column
+                $error_headers = array_diff_assoc($headerData, array_unique($headerData));
+                if (count($error_headers) > 0) {
+                    foreach ($error_headers as $single_error_header) {
+                        // ignoring invalid column validation checking
+                        if (in_array($single_error_header, $valid_headers)) {
+                            $return['errors']['header'][] = $single_error_header;
+                        }
+                    }
                 }
             }
         }
