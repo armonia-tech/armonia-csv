@@ -8,42 +8,6 @@ use ArmoniaCsv\Csv;
 
 class CsvTest extends TestCase
 {
-    private string $_test_data_dir;
-    private string $_test_tmp_dir;
-
-    /**
-     * Setup
-     */
-    public function setUp() : void
-    {
-        $this->_test_data_dir = dirname(__FILE__) . DIRECTORY_SEPARATOR . 'file'. DIRECTORY_SEPARATOR;
-        $this->_test_tmp_dir  = $this->_test_data_dir . 'tmp'. DIRECTORY_SEPARATOR;
-
-        if (is_dir($this->_test_tmp_dir) === false) {
-            mkdir($this->_test_tmp_dir);
-        }
-    }
-
-    /**
-     * Print
-     */
-    protected function pr($title, $val1 = [], $val2 = [], $val3 = [])
-    {
-        echo PHP_EOL;
-        echo '------------------------------------------------------' . PHP_EOL;
-        echo ' '. $title . PHP_EOL;
-        echo '------------------------------------------------------' . PHP_EOL;
-        echo 'ROUTE : ';
-        print_r($val1);
-        echo PHP_EOL;
-        echo 'REQUEST : ';
-        print_r($val2);
-        echo PHP_EOL;
-        echo 'RESPONSE : ';
-        print_r($val3);
-        echo PHP_EOL;
-    }
-
     public function testHalfFullWidthSymbolAndSpaceContent()
     {
         $expected_output = [
