@@ -399,7 +399,8 @@ class Csv
     {
         // replace double quotes with temporary quotation to avoid preg_replace the wrong double quote
         $content  = str_replace('""', '$dqut', $content);
-
+        $content = str_replace(["\r\n", "\r"], "\n", $content);
+        
         // find all text within double quotes and replace the next line with \n
         // Regex definitions => within double quotes regex:((?:""|[^"])
         // - format 1: "" => to cater when user enter " in csv, so if within the quote exists this quote value, will consider as a group
