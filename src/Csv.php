@@ -60,6 +60,15 @@ class Csv
      * @param int $skipDataLine optional
      * @param bool $skipEmptyRow optional default false
      * @param bool $validateDuplicateColumnValidation optional default false
+     *
+     * not support user entered comma value in csv, will break the csv content
+     * not fully support user entered backslash "\" value in csv, example:
+     * '\abc' => '\abc' (correct)
+     * '\\abc' => '\abc' (incorrect)
+     * '\\\abc' => '\\abc' (incorrect)
+     * '\\\\abc' => '\\abc' (incorrect)
+     * '\\\\\abc' => '\\\abc' (incorrect)
+     *
      * @return array
      */
     public static function renderCsvContent(string $csvContent, string $formatName, bool $hasHeader = true, int $skipDataLine = 0, string $separator = "", bool $skipEmptyRow = false, bool $validateDuplicateColumnValidation = false)
@@ -83,46 +92,13 @@ class Csv
             $separator = ",";
         }
 
-        // convert separator to dhexadecimal for regex pattern on following process of preg_replace
-        $hex_dec = str_pad(dechex(ord($separator)), 2, '0', STR_PAD_LEFT);
-        // the following pattern will add double quotes to columns with multiple lines
-        $pattern = '/((?:(?:[^\x' . $hex_dec . '"]*)(?![\x' . $hex_dec . '])\n){2,}(?![\x' . $hex_dec . '])(?:[^\x' . $hex_dec . '"]*)(?=[\x' . $hex_dec . ']))/';
-        $replaceResult = preg_replace($pattern, '"$1"', $csvContent);
+        $lines = self::parseCsvContentToArray($csvContent);
 
-        if (!is_null($replaceResult)) {
-            $csvContent  = $replaceResult;
-        }
+        $csvData = self::convertCsvLinesToArrayFormat($lines, $separator, $skipEmptyRow);
 
-        // replace double quotes with temporary quotation to avoid preg_replace the wrong double quote
-        $csvContent  = str_replace('""', '$dqut', $csvContent);
-
-        // find all next lines between double quotes in the same column and replace the next line with \n for temporary
-        // due to data lines are separated by using next line when explode csv content later
-        $csvContent  = preg_replace('/(\n|\r)(?=(?:[^"]*)"(,|\n))/', '\n', $csvContent);
-
-        // put back the double quotes
-        $csvContent  = str_replace('$dqut', '""', $csvContent);
-
-        $lines       = explode(PHP_EOL, $csvContent);
-        $csvData     = [];
         $return      = [];
         $allData     = [];
         $startRow    = 0 + $skipDataLine;
-
-        foreach ($lines as $line) {
-            // preg_match to check if other than double quote, space and comma have values, then it means it is not row with all empty strings
-            // preg_match validation does not handle false due to error will be handled by str_getcsv which will throw error
-            if (($skipEmptyRow === true && preg_match('/[^" ,]/', $line) !== 0) ||
-                ($skipEmptyRow === false && !empty($line))) {
-                // replace the actual next line to the data
-                $new_line = str_replace('\n', "\n", $line);
-                if (!empty($separator)) {
-                    $csvData[] = str_getcsv($new_line, $separator);
-                } else {
-                    $csvData[] = str_getcsv($new_line);
-                }
-            }
-        }
 
         $formatFilePath = self::$config['format_folder'].'/'.$formatName.'.php';
         $headerConfig   = require $formatFilePath;
@@ -408,6 +384,72 @@ class Csv
             }
             $output .= substr($tmp, 1).$rowSep;
         }
+        return $output;
+    }
+
+    /*
+     * Parse Csv content to array
+     *
+     * @author Lim Sing <sing.lim@armonia-tech.com>
+     * @param string $content
+     * @return string $lines
+     *
+     */
+    public static function parseCsvContentToArray($content)
+    {
+        // replace double quotes with temporary quotation to avoid preg_replace the wrong double quote
+        $content  = str_replace('""', '$dqut', $content);
+        $content = str_replace(["\r\n", "\r"], "\n", $content);
+        
+        // find all text within double quotes and replace the next line with \n
+        // Regex definitions => within double quotes regex:((?:""|[^"])
+        // - format 1: "" => to cater when user enter " in csv, so if within the quote exists this quote value, will consider as a group
+        // so this regex is to prevent match into two different group instead one group (example: "abc""def", final result => 'abc"def' )
+        // - format 2:[^"] => not double quotes
+        $content = preg_replace_callback(
+            '/"((?:""|[^"])*)"/',
+            function($m) {
+                return preg_replace('/\n/', '\n', $m[0]);
+            },
+            $content);
+
+        // put back the double quotes
+        $content  = str_replace('$dqut', '""', $content);
+
+        $lines = explode(PHP_EOL, $content);
+
+        return $lines;
+    }
+
+    /*
+     * Convert csv lines to array format
+     *
+     * @author Lim Sing <sing.lim@armonia-tech.com>
+     * @param array $lines
+     * @param string $separator
+     * @param bool $skipEmptyRow
+     * @return string $lines
+     *
+     */
+    public static function convertCsvLinesToArrayFormat(array $lines, string $separator = "", bool $skipEmptyRow = false)
+    {
+        $output = [];
+
+        foreach ($lines as $line) {
+            // preg_match to check if other than double quote, space and comma have values, then it means it is not row with all empty strings
+            // preg_match validation does not handle false due to error will be handled by str_getcsv which will throw error
+            if (($skipEmptyRow === true && preg_match('/[^" ,]/', $line) !== 0) ||
+                ($skipEmptyRow === false && !empty($line))) {
+                // replace the actual next line to the data
+                $new_line = str_replace('\n', "\n", $line);
+                if (!empty($separator)) {
+                    $output[] = str_getcsv($new_line, $separator);
+                } else {
+                    $output[] = str_getcsv($new_line);
+                }
+            }
+        }
+
         return $output;
     }
 
