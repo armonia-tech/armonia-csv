@@ -76,25 +76,19 @@ class Csv
         self::checkFileFormatExists($formatName);
         self::checkJsonSchemaExists($formatName);
 
-        $fileEncoding = self::fileDetectEncoding($csvContent);
-
-        if ($fileEncoding != self::UTF_8) {
-            $csvContent = iconv($fileEncoding, self::UTF_8."//IGNORE", $csvContent);
-        }
-
-        // remove byte order mark if encoding is UTF-8
-        if ($fileEncoding === self::UTF_8) {
-            $csvContent = self::removeByteOrderMark($csvContent);
-        }
-
         // set default separator if empty
         if (empty($separator)) {
             $separator = ",";
         }
 
-        $lines = self::parseCsvContentToArray($csvContent);
+        $lines = self::parseCsvContentToArray($csvContent, $separator);
 
         $csvData = self::convertCsvLinesToArrayFormat($lines, $separator, $skipEmptyRow);
+
+        // return empty array if csv data is empty
+        if (empty($csvData)) {
+            return $csvContent;
+        }
 
         $return      = [];
         $allData     = [];
@@ -391,34 +385,73 @@ class Csv
      * Parse Csv content to array
      *
      * @author Lim Sing <sing.lim@armonia-tech.com>
-     * @param string $content
-     * @return string $lines
+     * @param string $csvContent
+     * @param string $separator
+     * @return string $output
      *
      */
-    public static function parseCsvContentToArray($content)
+    public static function parseCsvContentToArray(string $csvContent, string $separator = ",") 
     {
+        $fileEncoding = self::fileDetectEncoding($csvContent);
+
+        if ($fileEncoding != self::UTF_8) {
+            $csvContent = iconv($fileEncoding, self::UTF_8."//IGNORE", $csvContent);
+        }
+
+        // remove byte order mark if encoding is UTF-8
+        if ($fileEncoding === self::UTF_8) {
+            $csvContent = self::removeByteOrderMark($csvContent);
+        }
+
+        // convert all newline format to \n in order to cater different os generated file
+        $csvContent = str_replace(["\r\n", "\r"], "\n", $csvContent);
+
+        // convert separator to dhexadecimal for regex pattern on following process of preg_replace
+        $hex_dec = str_pad(dechex(ord($separator)), 2, '0', STR_PAD_LEFT);
+        // the following pattern will add double quotes to columns with multiple lines
+        // this is to cater for if empty line exist in between the rows, then they will be grouped in one cell consider in same the row (special case for armonia csv only)
+        $pattern = '/((?:(?:[^\x' . $hex_dec . '"]*)(?![\x' . $hex_dec . '])\n){2,}(?![\x' . $hex_dec . '])(?:[^\x' . $hex_dec . '"]*)(?=[\x' . $hex_dec . ']))/';
+        $replaceResult = preg_replace($pattern, '"$1"', $csvContent);
+
+        if (!is_null($replaceResult)) {
+            $csvContent  = $replaceResult;
+        }
+
         // replace double quotes with temporary quotation to avoid preg_replace the wrong double quote
-        $content  = str_replace('""', '$dqut', $content);
-        $content = str_replace(["\r\n", "\r"], "\n", $content);
-        
-        // find all text within double quotes and replace the next line with \n
-        // Regex definitions => within double quotes regex:((?:""|[^"])
-        // - format 1: "" => to cater when user enter " in csv, so if within the quote exists this quote value, will consider as a group
-        // so this regex is to prevent match into two different group instead one group (example: "abc""def", final result => 'abc"def' )
-        // - format 2:[^"] => not double quotes
-        $content = preg_replace_callback(
-            '/"((?:""|[^"])*)"/',
-            function($m) {
-                return preg_replace('/\n/', '\n', $m[0]);
-            },
-            $content);
+        $csvContent  = str_replace('""', '$dqut', $csvContent);
 
-        // put back the double quotes
-        $content  = str_replace('$dqut', '""', $content);
+        $lines = explode(PHP_EOL, $csvContent);
 
-        $lines = explode(PHP_EOL, $content);
+        $output = [];
+        $total = count($lines);
+        $temp_line = '';
+        for ($i=0; $i < $total; $i++) {
+            $line = empty($temp_line) ? $lines[$i] : $temp_line;
+            // check is double quote exists
+            preg_match_all('/\"/', $line, $matches);
+            $append_next_row = false;
 
-        return $lines;
+            /*
+            * Cater for data cell containing line breaks
+            * Continue append until total double quotes are in even number
+            * A complete line must contain total with even number double quotes
+            */
+            if (isset($matches[0]) && (count($matches[0]) % 2 !== 0) && isset($lines[$i+1])) {
+                $temp_line = $line . '\n' . $lines[$i+1];
+                $append_next_row = true;
+                continue;
+            }
+
+            if ($append_next_row === false) {
+                // reset temp line to discontinue append next line
+                $temp_line = '';
+                $line  = str_replace('$dqut', '""', $line);
+                $output[] = $line;
+                continue;
+            }
+        }
+
+        return $output;
     }
 
     /*
@@ -431,8 +464,11 @@ class Csv
      * @return string $lines
      *
      */
-    public static function convertCsvLinesToArrayFormat(array $lines, string $separator = "", bool $skipEmptyRow = false)
+    public static function convertCsvLinesToArrayFormat(array $lines, string $separator = ",", bool $skipEmptyRow = false)
     {
+        if (empty($lines)) {
+            return $lines;
+        }
         $output = [];
 
         foreach ($lines as $line) {

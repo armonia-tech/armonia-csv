@@ -5,13 +5,79 @@ namespace ArmoniaCsv\tests;
 
 use PHPUnit\Framework\TestCase;
 use ArmoniaCsv\Csv;
-
+use ArmoniaGoogle\CloudStorage;
 class CsvTest extends TestCase
 {
+    public function testEmptyContent()
+    {
+        $expected_output = [
+            ''
+        ];
+
+        $content = '';
+
+        $expected_output_to_array = [];
+        $parsed_result = Csv::parseCsvContentToArray($content);
+        $this->assertEquals($expected_output, $parsed_result);
+        $result = Csv::convertCsvLinesToArrayFormat($parsed_result);
+        $this->assertEquals($expected_output_to_array, $result);
+    }
+
+    public function testMultiNewlineWithSingleRowContent()
+    {
+        $expected_output = [
+            '1,1,"22\n33",4,"55\n66","7",8'
+        ];
+
+        $contents = [];
+        $contents[] = '1,1,"22'."\n".'33",4,"55'."\n".'66","7",8';
+        $contents[] = '1,1,"22'."\r".'33",4,"55'."\r".'66","7",8';
+        $contents[] = '1,1,"22'."\r\n".'33",4,"55'."\r\n".'66","7",8';
+
+        $expected_output_to_array = [
+            [ '1','1','22'."\n".'33', '4', '55'."\n".'66', '7', '8'],
+        ];
+        foreach ($contents as $content) {
+            $parsed_result = Csv::parseCsvContentToArray($content);
+            $this->assertEquals($expected_output, $parsed_result);
+            $result = Csv::convertCsvLinesToArrayFormat($parsed_result);
+            $this->assertEquals($expected_output_to_array, $result);
+        }
+    }
+
+    public function testDoubleQuotesContent()
+    {
+        $expected_output = [
+            'a,b,c',
+            '"1""doublehere",2,3',
+            ',,"\n"',
+            '1,"1""doublehere",1'
+        ];
+
+        $contents = [];
+        $contents[] = 'a,b,c'."\n".'"1""doublehere",2,3'."\n".',,"'."\n".'"'."\n".'1,"1""doublehere",1';
+        $contents[] = 'a,b,c'."\r".'"1""doublehere",2,3'."\r".',,"'."\r".'"'."\r".'1,"1""doublehere",1';
+        $contents[] = 'a,b,c'."\r\n".'"1""doublehere",2,3'."\r\n".',,"'."\r\n".'"'."\r\n".'1,"1""doublehere",1';
+
+        $expected_output_to_array = [
+            ['a', 'b', 'c'],
+            ['1"doublehere', '2', '3'],
+            ['', '', "\n"],
+            ['1', '1"doublehere', '1'],
+        ];
+        foreach ($contents as $content) {
+            $parsed_result = Csv::parseCsvContentToArray($content);
+            $this->assertEquals($expected_output, $parsed_result);
+
+            $result = Csv::convertCsvLinesToArrayFormat($parsed_result);
+            $this->assertEquals($expected_output_to_array, $result);
+        }
+    }
+
     public function testHalfFullWidthSymbolAndSpaceContent()
     {
         $expected_output = [
-            'id,仕入　先,PI No,SKU/パーツ,仕入先コード,原価通貨,原価2,原価,個数,タイプ',
+            'id,仕入　先,PI No,SKU/パーツ,仕入先コード,原価通貨,原価2,原価,個数,"\n",タイプ',
             '100,Warthman,pi_import_t、est_3,"testねemptyspa，ce","　　",1,84,958.11,ﾟ,"　　"',
             '"｡","｢","｣","､","･","ｦ","ｧ","ｨ","ｩ","ｪ","ｫ","ｬ","ｭ","ｮ",ｯ',
             'ﾀ,ﾁ,ﾂ,ﾃ,ﾄ,ﾅ,ﾆ,ﾇ,ﾈ,ﾉ,ﾊ,ﾋ,ﾌ,ﾍ,ﾎ,ﾏ',
@@ -25,7 +91,7 @@ class CsvTest extends TestCase
         $contents[] = $expected_output[0] ."\r\n". $expected_output[1] ."\r\n". $expected_output[2] ."\r\n". $expected_output[3] ."\r\n". $expected_output[4] ."\r\n". $expected_output[5];
 
         $expected_output_to_array = [
-            ['id', '仕入　先', 'PI No', 'SKU/パーツ', '仕入先コード', '原価通貨', '原価2', '原価', '個数', 'タイプ'],
+            ['id', '仕入　先', 'PI No', 'SKU/パーツ', '仕入先コード', '原価通貨', '原価2', '原価', '個数', "\n",'タイプ'],
             ['100', 'Warthman', 'pi_import_t、est_3', 'testねemptyspa，ce', '　　', '1', '84', '958.11', 'ﾟ', "　　"],
             ['｡','｢','｣','､','･','ｦ','ｧ','ｨ','ｩ','ｪ','ｫ','ｬ','ｭ','ｮ','ｯ'],
             ['ﾀ','ﾁ','ﾂ','ﾃ','ﾄ','ﾅ','ﾆ','ﾇ','ﾈ','ﾉ','ﾊ','ﾋ','ﾌ','ﾍ','ﾎ','ﾏ'],
@@ -166,26 +232,32 @@ class CsvTest extends TestCase
         }
     }
 
+    // special case handle by armonia csv
+    // if empty line exists in middle, then must group all group together with previous line
     public function testEmptyLineExistsInMiddleRowContent()
     {
-        $expected_output = [
+        $data = [
             'id,仕入先,PI No,SKU/パーツ,仕入先コード,原価通貨,原価2,原価,個数,タイプ',
             '',
             '200,Warthman,pi_import_test_3,"testemptyspace",199,1,84,958.11,15,1',
             '100,Warthman,pi_import_test_3,"testemptyspace",199,1,84,958.11,15,1',
         ];
 
+        $expected_output = [
+            'id,仕入先,PI No,SKU/パーツ,仕入先コード,原価通貨,原価2,原価,個数,"タイプ\n\n200",Warthman,pi_import_test_3,"testemptyspace",199,1,84,958.11,15,1',
+            '100,Warthman,pi_import_test_3,"testemptyspace",199,1,84,958.11,15,1',
+        ];
+
         $contents = [];
-        $contents[] = $expected_output[0] . "\n$expected_output[1]\n$expected_output[2]\n$expected_output[3]"; 
-        $contents[] = $expected_output[0] ."\r". $expected_output[1] ."\r". $expected_output[2] ."\r". $expected_output[3];
-        $contents[] = $expected_output[0] ."\r\n". $expected_output[1] ."\r\n". $expected_output[2] ."\r\n". $expected_output[3];
+        $contents[] = $data[0] . "\n$data[1]\n$data[2]\n$data[3]";
+        $contents[] = $data[0] ."\r". $data[1] ."\r". $data[2] ."\r". $data[3];
+        $contents[] = $data[0] ."\r\n". $data[1] ."\r\n". $data[2] ."\r\n". $data[3];
 
         $expected_output_to_array = [
-            ['id', '仕入先', 'PI No', 'SKU/パーツ', '仕入先コード', '原価通貨', '原価2', '原価', '個数', 'タイプ'],
-            ['200', 'Warthman', 'pi_import_test_3', 'testemptyspace', '199', '1', '84', '958.11', '15', '1'],
+            ['id', '仕入先', 'PI No', 'SKU/パーツ', '仕入先コード', '原価通貨', '原価2', '原価', '個数', "タイプ\n\n200", 'Warthman', 'pi_import_test_3', 'testemptyspace', '199', '1', '84', '958.11', '15', '1'],
             ['100', 'Warthman', 'pi_import_test_3', 'testemptyspace', '199', '1', '84', '958.11', '15', '1'],
         ];
-        
+
         foreach ($contents as $content) {
             $parsed_result = Csv::parseCsvContentToArray($content);
             $this->assertEquals($expected_output, $parsed_result);
@@ -547,10 +619,10 @@ testempt
     {
         $expected_output = [
             '仕入先,"id",PI No,SKU/パーツ,原価通貨,原価2,原価,個数,"タイプ","仕入\n先コード"',
-            '"\nWarthman","200",pi_import_test_3,199,1,84,958.11,15,"1","\ntestemptyspace"',//here
+            '"\nWarthman","200",pi_import_test_3,199,1,84,958.11,15,"1","\ntestemptyspace"',
             'Warthman,"100",pi_import_test_3,199,1,84,958.11,15,"1","testemptyspace\n"',
             '"   Warthman\n","100",pi_import_test_3,199,1,84,958.11,15,"1","\ntestemptyspace\n"',
-            '"\n    Warthman","yy",pi_import_test_3,199,1,84,958.11,15,"1","testempt\nyspace"',//here
+            '"\n    Warthman","yy",pi_import_test_3,199,1,84,958.11,15,"1","testempt\nyspace"',
             '"War\n\nthman","yy",pi_import_test_3,199,1,84,958.11,15,"1","testempt\n\n            yspace"',
             'Warthman,"yy",pi_import_test_3,199,1,"8\n    4",958.11,15,"1","\ntestempt\n\n            yspace\n"',
         ];
@@ -590,7 +662,6 @@ testempt
         ];
         foreach ($contents as $content) {
             $parsed_result = Csv::parseCsvContentToArray($content);
-
             $this->assertEquals(count($expected_output), count($parsed_result));
             $this->assertEquals($expected_output[0], $parsed_result[0]);
             $this->assertEquals($expected_output[1], $parsed_result[1]);
@@ -610,5 +681,18 @@ testempt
             $this->assertEquals($expected_output_to_array[5], $result[5]);
             $this->assertEquals($expected_output_to_array[6], $result[6]);
         }
+    }
+
+    public function testBigContentData()
+    {
+        $file_path = 'unit-test/futureshop.csv';
+        CloudStorage::setClient(getenv('STORAGE_KEY'), 'at-developer');
+        $content = CloudStorage::readFromCloud($file_path);
+
+        $parsed_result = Csv::parseCsvContentToArray($content);
+        $this->assertEquals(51, count($parsed_result));
+        $result = Csv::convertCsvLinesToArrayFormat($parsed_result);
+
+        $this->assertEquals(51, count($result));
     }
 }
